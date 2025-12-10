@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0;background:#000;overflow:hidden">
+<canvas id="c"></canvas>
+<script>
+let c = document.getElementById('c'), ctx = c.getContext('2d');
+c.width = innerWidth; c.height = innerHeight;
+let particles = [];
+
+addEventListener('click', e => {
+  for(let i = 0; i < 100; i++){
+    particles.push({
+      x: e.clientX,
+      y: e.clientY,
+      vx: Math.random()*8-4,
+      vy: Math.random()*8-4,
+      life: 100,
+      color: hsl(${Math.random()*360},100%,50%)
+    });
+  }
+});
+
+function anim(){
+  ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  ctx.fillRect(0,0,c.width,c.height);
+  particles.forEach((p,i) => {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 5, 5);
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.2; p.life--;
+    if(p.life <= 0) particles.splice(i,1);
+  });
+  requestAnimationFrame(anim);
+}
+anim();
+</script>
+</body>
+</html>
