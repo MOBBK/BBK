@@ -1,0 +1,31 @@
+func (a *App) runAccount(acc *Account) {
+    defer func() {
+        if r := recover(); r != nil { // 单账号 panic 被捕获并恢复
+            a.setStatus(acc, StatusFailed, fmt.Sprintf("携程崩溃已恢复: %v", r))
+        }
+    }()
+    for {
+        select { case <-acc.cancel: return; default: }
+        err := a.connectAndListen(acc)
+        if isAuthError(err) { // 密码错→标红退出，不重试
+            a.setStatus(acc, StatusFailed, "认证失败(密码/授权码错误)"); return
+        }
+        // 网络/超时→8 秒后自动重连，绝不影响其他账号
+    }
+} 
+runtime.EventsEmit(a.ctx, "new-mail", item)        // {email,from,subject,code,time,uid}
+runtime.EventsEmit(a.ctx, "account-update", view)  // 状态/延迟/总数
+const state = { selected: null, byEmail: {} }; // email -> { view, history[] }
+
+runtime.EventsOn("new-mail", (mail) => {
+  const bucket = state.byEmail[mail.email];
+  if (!bucket) return;
+  bucket.history.unshift(mail);              // ① 永远写入"该邮件所属账号"的桶
+  if (mail.code) bucket.view.latestCode = mail.code;
+  renderSidebarCard(mail.email);             // ② 左侧该账号气泡静默刷新
+
+  if (state.selected === mail.email) {       // ③ 只有正在看它，才动右侧工作区
+    renderCodeCard(bucket.view.latestCode, mail);
+    prependHistoryRow(mail);
+  }
+});
